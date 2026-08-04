@@ -20,9 +20,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	_, err = l.Accept()
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection: ", err.Error())
+			os.Exit(1)
+		}
+
+		go handleConn(conn)
+	}
+}
+
+func handleConn(conn net.Conn) {
+	// defer conn.Close()
+
+	// _, err := io.ReadAll(conn)
+	// if err != nil {
+	// 	fmt.Println("Failed to read the: ", err.Error())
+	// 	return
+	// }
+
+	// fmt.Printf("data read: %v\n", string(data))
+	_, err := conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
+		fmt.Println("an error corrued: ", err.Error())
 		os.Exit(1)
 	}
+	conn.Close()
 }
