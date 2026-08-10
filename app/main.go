@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/codecrafters-io/http-server-starter-go/app/internal/http"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports above (feel free to remove this!)
@@ -32,19 +34,22 @@ func main() {
 }
 
 func handleConn(conn net.Conn) {
-	// defer conn.Close()
+	defer conn.Close()
 
-	// _, err := io.ReadAll(conn)
-	// if err != nil {
-	// 	fmt.Println("Failed to read the: ", err.Error())
-	// 	return
-	// }
+	req := http.NewRequest(conn)
+	if req == nil {
+		fmt.Println("failed to build the rquest: ")
+		os.Exit(1)
+	}
 
-	// fmt.Printf("data read: %v\n", string(data))
-	_, err := conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	response := "HTTP/1.1 200 OK\r\n\r\n"
+	if req.Path != "/" {
+		response = "HTTP/1.1 404 Not Found\r\n\r\n"
+	}
+
+	_, err := conn.Write([]byte(response))
 	if err != nil {
 		fmt.Println("an error corrued: ", err.Error())
 		os.Exit(1)
 	}
-	conn.Close()
 }
