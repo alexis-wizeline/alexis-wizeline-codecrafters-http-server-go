@@ -2,18 +2,31 @@ package http
 
 import (
 	"bufio"
-	"fmt"
 	"io"
+	"maps"
 	"net"
 	"strings"
 	"time"
 )
 
+type Params map[string]any
 type Request struct {
-	Method string
-	Path   string
-	Versio string
-	Header Header
+	Method  string
+	Path    string
+	Version string
+	Header  Header
+	Params  Params
+}
+
+func (req *Request) AddParams(new Params) {
+	if new == nil {
+		return
+	}
+	if req.Params == nil {
+		req.Params = make(Params)
+	}
+
+	maps.Copy(req.Params, new)
 }
 
 func NewRequest(conn net.Conn) *Request {
@@ -22,8 +35,8 @@ func NewRequest(conn net.Conn) *Request {
 		return nil
 	}
 
-	requestLine, headersSlice := stringReq[0], stringReq[1:]
-	requestParts := strings.Split(requestLine, " ")
+	requestLine, headersSlice := cleanStr(cleanStr(stringReq[0], '\r'), '\n'), stringReq[1:]
+	requestParts := segmentBy(requestLine, ' ')
 	if len(requestParts) < 3 {
 		return nil
 	}
@@ -39,16 +52,17 @@ func NewRequest(conn net.Conn) *Request {
 			index++
 		}
 
-		headers[key.String()] = header[index+1:]
+		headers[key.String()] = cleanStr(cleanStr(header[index+1:], '\r'), '\n')
 	}
 
+	path, params := parsePath(requestParts[1])
 	req := &Request{
-		Method: requestParts[0],
-		Path:   requestParts[1],
-		Versio: requestParts[2],
-		Header: headers,
+		Method:  requestParts[0],
+		Path:    path,
+		Version: requestParts[2],
+		Header:  headers,
+		Params:  params,
 	}
-
 	return req
 }
 
@@ -58,7 +72,6 @@ func readConn(conn net.Conn) ([]string, error) {
 	readder := bufio.NewReader(conn)
 	for {
 		line, err := readder.ReadString('\n')
-		fmt.Println(line)
 		if err != nil {
 			if err == io.EOF {
 				break
@@ -72,4 +85,55 @@ func readConn(conn net.Conn) ([]string, error) {
 	}
 
 	return lines, nil
+}
+
+func parsePath(path string) (string, Params) {
+	params := make(Params)
+	qParamsStartIndex := -1
+	for index, char := range path {
+		if char == '?' {
+			qParamsStartIndex = index
+			break
+		}
+	}
+	if qParamsStartIndex == -1 {
+		return path, params
+	}
+
+	queryParams := path[qParamsStartIndex+1:]
+	key, value := "", ""
+	isKey := true
+	for _, char := range queryParams {
+		if isKey {
+			if char == '=' {
+				isKey = false
+				continue
+			}
+			key += string(char)
+		} else {
+			if char == '&' {
+				params[key] = value
+				key, value = "", ""
+				isKey = true
+				continue
+			}
+			value += string(char)
+		}
+	}
+	params[key] = value
+
+	pathWithoutQuery := path[0:qParamsStartIndex]
+	return pathWithoutQuery, params
+}
+
+func cleanStr(str string, rm byte) string {
+	res := strings.Builder{}
+	for _, ch := range str {
+		if ch == rune(rm) {
+			continue
+		}
+		res.WriteByte(byte(ch))
+	}
+
+	return res.String()
 }
