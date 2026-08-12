@@ -52,7 +52,7 @@ func NewRequest(conn net.Conn) *Request {
 			index++
 		}
 
-		headers[key.String()] = cleanStr(cleanStr(header[index+1:], '\r'), '\n')
+		headers[key.String()] = cleanStr(cleanStr(cleanStr(header[index+1:], '\r'), '\n'), ' ')
 	}
 
 	path, params := parsePath(requestParts[1])

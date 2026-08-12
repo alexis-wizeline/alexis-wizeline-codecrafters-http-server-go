@@ -34,6 +34,21 @@ func main() {
 			Body:       body,
 		}
 	})
+	s.Register("/user-agent", func(r *http.Request) http.Response {
+		userAgent, ok := r.Header["User-Agent"].(string)
+		headers := make(http.Header)
+		if ok {
+			headers["Content-Type"] = "text/plain"
+			headers["Content-Length"] = len(userAgent)
+		}
+		return http.Response{
+			Version:    r.Version,
+			Code:       "200",
+			CodeStatus: "OK",
+			Header:     headers,
+			Body:       userAgent,
+		}
+	})
 
 	l, err := s.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
