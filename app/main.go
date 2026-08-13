@@ -74,7 +74,7 @@ func main() {
 
 		headers := make(http.Header)
 		headers["Content-Type"] = "application/octet-stream"
-		headers["Content-Length"] = len(content) - 1
+		headers["Content-Length"] = len(content)
 
 		return http.Response{
 			Version:    r.Version,
