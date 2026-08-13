@@ -14,13 +14,20 @@ type HandleFunc func(r *Request) Response
 type Routes map[string]HandleFunc
 
 type Server struct {
-	routes Routes
+	routes    Routes
+	folder    string
+	directory string
 }
 
-func NewServer() *Server {
+func NewServer(directory string) *Server {
 	return &Server{
-		routes: make(Routes),
+		routes:    make(Routes),
+		directory: directory,
 	}
+}
+
+func (s *Server) Directory() string {
+	return s.directory
 }
 
 func (s *Server) Listen(network, address string) (net.Listener, error) {
